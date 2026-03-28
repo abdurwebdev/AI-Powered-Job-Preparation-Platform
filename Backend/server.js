@@ -1,5 +1,5 @@
 import app from './src/app.js';
 
 app.listen(process.env.PORT,()=>{
-  console.log(`Server is running on Port http://localhost:3000/${process.env.PORT}`)
+  console.log(`Server is running on Port http://localhost:${process.env.PORT}`)
 })

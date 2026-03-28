@@ -7,4 +7,4 @@ app.get('/',(req,res)=>{
   res.send("API is Running! ")
 })
 
-module.exports = app;
+export default app;
