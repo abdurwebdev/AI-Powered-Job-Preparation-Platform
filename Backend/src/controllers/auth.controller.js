@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import redisClient from "../config/redis.js";
 
 export const registerUser = async (req,res) =>{
   try{
@@ -64,12 +65,18 @@ export const loginUser = async (req,res)=>{
   }
 
   let token = jwt.sign({id:isEmailValid._id},process.env.JWT_SECRET,{expiresIn:'7d'})
-
+  
   res.cookie("token",token,{
     httpOnly:true,
     secure:false,
-    sameSite:'lax'
-  });
+    sameSite:'Strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  })
+
+  await redisClient.set(`user_token:${isEmailValid._id}`,token,{
+    EX: 7 * 24 * 60 * 60
+  })
+  
   isEmailValid.password = undefined;
   res.status(200).json({
     success:true,
