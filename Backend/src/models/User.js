@@ -7,7 +7,10 @@ const userSchema = new mongoose.Schema({
     unique:true,
     index:true
   },
-  password:String
+  password:{
+    type:String,
+    select:false
+  }
 },{
   timestamps:true
 })
