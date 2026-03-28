@@ -68,7 +68,7 @@ export const loginUser = async (req,res)=>{
   
   res.cookie("token",token,{
     httpOnly:true,
-    secure:false,
+    secure:process.env.NODE_ENV==='production',
     sameSite:'Strict',
     maxAge: 7 * 24 * 60 * 60 * 1000
   })
@@ -84,4 +84,21 @@ export const loginUser = async (req,res)=>{
     user:isEmailValid
   })
 
+}
+
+export const logOutUser = async (req,res) =>{
+       try {
+        const userId = req.user.id;
+
+        await redisClient.del(`user_token:${userId}`);
+
+        res.clearCookie("token",{
+          httpOnly:true,
+          secure:process.env.NODE_ENV==='production',
+          sameSite:'Strict'
+        })
+        res.json({message:"Loggedout successfully"})
+       } catch (error) {
+        res.status(500).json({message:err.message})
+       }
 }
