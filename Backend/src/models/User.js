@@ -10,7 +10,17 @@ const userSchema = new mongoose.Schema({
   password:{
     type:String,
     select:false
-  }
+  },
+  skills:[String],
+  bio:String,
+  role:{
+    type:String,
+    default:'user'
+  },
+  verified:{
+    type:Boolean,
+    default:false
+  },
 },{
   timestamps:true
 })
