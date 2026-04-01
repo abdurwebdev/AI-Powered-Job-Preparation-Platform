@@ -1,5 +1,8 @@
 import Job from "../models/Job.js";
 import Resume from "../models/Resume.js";
+import { generateJobMatchFeedback } from "../utils/ai.js";
+import logger from "../config/logger.js";
+import redisClient from "../config/redis.js";
 
 export const createJob = async (req, res) => {
   try {
@@ -79,6 +82,19 @@ export const createJob = async (req, res) => {
 export const matchJobs = async (req,res)=>{
   try {
     const userId = req.user.id;
+
+    let cachedResults = await redisClient.get(`job_match:${userId}`);
+    const parsed = JSON.parse(cachedResults);
+    if(cachedResults){
+      return res.status(200).json({
+        success:true,
+        message:"Job fetced from cache.",
+        data:parsed.data,
+        feedback:parsed.feedback
+      })
+    }
+
+
     const resume = await Resume.findOne({user:userId}).sort({createdAt:-1});
 
     if(!resume){
@@ -89,9 +105,12 @@ export const matchJobs = async (req,res)=>{
     }
 
     const jobs = await Job.find();
+
+    const userSkills = resume.skills.map(skill=>skill.toLowerCase());
+
     const results = jobs.map(job=>{
-      const matchedSkills = job.requiredSkills.filter(skill=>resume.skills.includes(skill));
-      const matchScore =matchedSkills.length? Math.round(matchedSkills.length/job.requiredSkills.length)*100:0;
+      const matchedSkills = job.requiredSkills.filter(skill=>userSkills.includes(skill.toLowerCase()));
+      const matchScore =job.requiredSkills.length? Math.round((matchedSkills.length/job.requiredSkills.length)*100):0;
 
       return {
          title:job.title,
@@ -99,13 +118,27 @@ export const matchJobs = async (req,res)=>{
          matchScore,
          matchedSkills,
          missingSkills:job.requiredSkills.filter(skill=>
-          (!resume.skills.includes(skill)
+          (!userSkills.includes(skill)
          ))
       }
     })
+    
+    const requiredSkills = jobs.map(job=>job.requiredSkills).flat();
+
+    let aiFeedback = await generateJobMatchFeedback(userSkills,requiredSkills);
+
+    await redisClient.setEx(`job_match:${userId}`, 60 * 60,JSON.stringify(
+      {
+        data:results.sort((a,b)=>b.matchScore - a.matchScore),
+        feedback:aiFeedback
+      }
+    ));
+
+    logger.info(`Jobs matched successfully for user ${userId}`,{totalMatches:results.length});
     res.status(200).json({
       success:true,
-      data:results.sort((a,b)=>b.matchScore - a.matchScore)
+      data:results.sort((a,b)=>b.matchScore - a.matchScore),
+      feedback:aiFeedback
     })
   } catch (error) {
    logger.error(`Error matching jobs:${error.message}`);

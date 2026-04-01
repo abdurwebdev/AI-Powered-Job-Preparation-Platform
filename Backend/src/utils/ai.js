@@ -39,3 +39,28 @@ export const analyzeResumeWithAI = async (text) =>{
   return JSON.parse(jsonMatch[0]);
 
 }
+
+const prompttwo = PromptTemplate.fromTemplate(`
+  Resume Skills: {skills}
+Job Skills: {requiredSkills}
+
+Tell:
+- Why user is a good fit
+- What skills to improve
+- Final suggestion
+Keep it simple and concise.
+  `)
+
+
+export const generateJobMatchFeedback = async (skills,requiredSkills)=>{
+    
+  const formattedPrompt = await prompttwo.format({skills,requiredSkills});
+
+  const response = await model.invoke(formattedPrompt);
+
+  const content = response.content;
+
+  return content;
+
+
+}
