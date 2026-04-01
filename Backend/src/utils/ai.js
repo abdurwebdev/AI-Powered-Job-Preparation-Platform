@@ -77,3 +77,44 @@ export const generateJobMatchFeedback = async (skills,requiredSkills)=>{
 
 
 }
+
+const promptthree = PromptTemplate.fromTemplate(
+  `
+  You are an AI interviewer for the role: {role}.
+Generate a single interview question for this role, focusing on practical skills.
+  `
+)
+
+export const generateInterviewQuestion = async (role)=>{
+  const formattedPrompt = await promptthree.format({role});
+  const response = await model.invoke(formattedPrompt);
+  return response.content;
+}
+
+const promptfour = PromptTemplate.fromTemplate(`
+  You are an AI evaluator for a {role} interview.
+Question: {question}
+Candidate Answer: {answer}
+
+Evaluate the answer:
+1. Score (0-100)
+2. Feedback
+3. Suggestions for improvement
+
+Return as JSON: 
+{{ 
+"score":"number" ,
+"feedback": "string",
+"improvement": "string" 
+}}
+`)
+
+export const evaluateAnswer = async ({role,question,answer}) =>{
+  const formattedPrompt = await promptfour.format({role,question,answer});
+  const response = await model.invoke(formattedPrompt);
+  const content = response.content;
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if(!jsonMatch) throw new Error("Error fetching response");
+
+  return JSON.parse(jsonMatch[0])
+}
