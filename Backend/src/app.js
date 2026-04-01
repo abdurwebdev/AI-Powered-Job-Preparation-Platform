@@ -5,10 +5,13 @@ import { connectDB } from './config/connectDB.js';
 import authRouter from './routes/auth.routes.js';
 import cookieParser from 'cookie-parser';
 import userRouter from './routes/user.routes.js';
-
+import resumeRouter from './routes/resume.routes.js';
+import jobRouter from './routes/job.routes.js';
+import { connectRedis } from './config/redis.js';
 const app = express();
 
 connectDB();
+connectRedis();
 
 app.use(cors({
   origin:'http://localhost:5173',
@@ -22,6 +25,8 @@ app.use(cookieParser());
 //Routes
 app.use("/api/auth",authRouter)
 app.use("/api/user",userRouter)
+app.use("/api/resume",resumeRouter)
+app.use("/api/job",jobRouter)
 
 app.get('/',(req,res)=>{
   res.send("API is Running! ")
