@@ -47,3 +47,4 @@
 {"level":"error","message":"Error matching jobs:Error fetching response","service":"user-service","timestamp":"2026:04:01 18:20:17"}
 {"level":"error","message":"Error matching jobs:Error fetching response","service":"user-service","timestamp":"2026:04:01 18:23:47"}
 {"level":"info","message":"Jobs matched successfully for user 69c9084952a8dd895c636aa5","service":"user-service","timestamp":"2026:04:01 18:28:25","totalMatches":10}
+{"level":"info","message":"Jobs matched successfully for user 69c9084952a8dd895c636aa5","service":"user-service","timestamp":"2026:04:01 19:46:01","totalMatches":10}

@@ -42,13 +42,22 @@ export const analyzeResumeWithAI = async (text) =>{
 
 const prompttwo = PromptTemplate.fromTemplate(`
   Resume Skills: {skills}
-Job Skills: {requiredSkills}
+  Job Skills: {requiredSkills}
 
-Tell:
-- Why user is a good fit
-- What skills to improve
-- Final suggestion
-Keep it simple and concise.
+Give:
+1. Fit Level (Strong / Moderate / Weak)
+2. Reason
+3. Missing Skills Improvement
+4. Final Verdict (Short e.g 'Highly Recommended' / 'Recommended' / 'Not Recommended')
+
+Return JSON format only
+
+{{
+  "fitLevel": "string",
+  "reason": "string",
+  "missingSkillsImprovement": "string",
+  "finalVerdict": "string"
+}}
   `)
 
 
@@ -60,7 +69,11 @@ export const generateJobMatchFeedback = async (skills,requiredSkills)=>{
 
   const content = response.content;
 
-  return content;
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+  if(!jsonMatch) throw new Error("Error fetching response");
+
+  return JSON.parse(jsonMatch[0]);
 
 
 }
