@@ -101,7 +101,7 @@ Evaluate the answer:
 2. Feedback
 3. Suggestions for improvement
 
-Return as JSON: 
+Return as valid JSON string.:
 {{ 
 "score":"number" ,
 "feedback": "string",
