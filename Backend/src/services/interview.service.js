@@ -1,6 +1,11 @@
 import redisClient from "../config/redis.js";
-import { generateInterviewQuestion,evaluateAnswer } from "../utils/ai.js";
+import {
+  generateInterviewQuestion,
+  evaluateAnswer,
+  generateSummaryStream, // imported, no local redeclaration
+} from "../utils/ai.js";
 
+// ---- Start Interview ----
 export const startInterviewService = async (socketId, role) => {
   const question = await generateInterviewQuestion(role);
 
@@ -8,7 +13,7 @@ export const startInterviewService = async (socketId, role) => {
     role,
     lastQuestion: question,
     totalScore: 0,
-    answers: [], // ✅ important
+    answers: [],
   };
 
   await redisClient.setEx(
@@ -20,20 +25,19 @@ export const startInterviewService = async (socketId, role) => {
   return question;
 };
 
+// ---- Submit Answer ----
 export const submitAnswerService = async (socketId, answer) => {
   const sessionData = await redisClient.get(`session:${socketId}`);
   if (!sessionData) throw new Error("session not found.");
 
   const session = JSON.parse(sessionData);
 
-  // ✅ FIX: correct param name
   const evaluation = await evaluateAnswer({
     role: session.role,
-    question: session.lastQuestion, // ❌ you used "session"
+    question: session.lastQuestion,
     answer,
   });
 
-  // ✅ STORE ANSWER (THIS WAS MISSING)
   session.answers.push({
     question: session.lastQuestion,
     answer,
@@ -41,14 +45,11 @@ export const submitAnswerService = async (socketId, answer) => {
     feedback: evaluation.feedback,
   });
 
-  // ✅ UPDATE SCORE
   session.totalScore += evaluation.score;
 
-  // ✅ NEXT QUESTION
   const nextQuestion = await generateInterviewQuestion(session.role);
   session.lastQuestion = nextQuestion;
 
-  // ✅ SAVE BACK TO REDIS (VERY IMPORTANT)
   await redisClient.set(
     `session:${socketId}`,
     JSON.stringify(session)
@@ -56,18 +57,30 @@ export const submitAnswerService = async (socketId, answer) => {
 
   return { evaluation, nextQuestion };
 };
-export const endInterviewService = async(socketId) =>{
-     const sessionData = await redisClient.get(`session:${socketId}`);
 
-     if(!sessionData) return null;
+// ---- End Interview ----
+export const endInterviewService = async (socketId) => {
+  const sessionData = await redisClient.get(`session:${socketId}`);
+  if (!sessionData) return null;
 
-     const session = JSON.parse(sessionData);
+  const session = JSON.parse(sessionData);
+  await redisClient.del(`session:${socketId}`);
 
-     await redisClient.del(`session:${socketId}`);
+  return {
+    role: session.role,
+    totalScore: session.totalScore,
+    answers: session.answers,
+  };
+};
 
-     return {
-      role:session.role,
-      totalScore:session.totalScore,
-      answers:session.answers
-     }
-}
+// ---- Stream Summary ----
+export const streamInterviewSummary = async function* (socketId) {
+  const sessionData = await redisClient.get(`session:${socketId}`);
+  if (!sessionData) throw new Error("session not found.");
+
+  const session = JSON.parse(sessionData);
+
+  for await (const token of generateSummaryStream(session)) {
+    yield token;
+  }
+};

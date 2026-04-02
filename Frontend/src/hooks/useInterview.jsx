@@ -34,6 +34,28 @@ export const useInterview = () => {
     };
   }, []);
 
+  useEffect(() => {
+    socket.on("streamQuestion", (token) => {
+      setQuestion((prev) => prev + token); // append token
+      setLoadingQuestion(false); // you can keep loading true if you want "generating..." indicator
+    });
+  
+    socket.on("streamEvaluation", (token) => {
+      setEvaluation((prev) => (prev ? { ...prev, feedback: prev.feedback + token } : { feedback: token }));
+      setLoadingEvaluation(false);
+    });
+  
+    socket.on("streamSummary", (token) => {
+      setSummary((prev) => (prev ? { ...prev, text: prev.text + token } : { text: token }));
+    });
+  
+    return () => {
+      socket.off("streamQuestion");
+      socket.off("streamEvaluation");
+      socket.off("streamSummary");
+    };
+  }, []);
+
   const startInterview = (role) => {
     setSummary(null);
     setLoadingQuestion(true);
